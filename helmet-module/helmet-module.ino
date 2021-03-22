@@ -7,6 +7,8 @@
 #define password "qwerty123"
 #define IP "192.168.4.1"
 #define PORT 4210   // local port to listen on
+#define MQ3 A0
+#define ALCOHOL_THRESHOLD 500
 
 WiFiUDP Udp;
 
@@ -26,18 +28,37 @@ void setup() {
     Serial.print(".");
   }
   Serial.println(" connected");
+  
   Udp.begin(PORT);
+  pinMode(MQ3, INPUT);
 }
 
 
 void loop() {
-  while (Serial.available() > 0 ) {
-    String inputString = Serial.readString();
-    inputString.toCharArray(senderPacket, 100);
+  String msgString;
+    int alcohol_level = analogRead(MQ3);
+    bool drunk = checkDrunk(alcohol_level);
+//    Serial.printf("Alcohol level: %d\tdrunk:%d\n", alcohol_level, drunk);
+
+    if(!drunk) {
+      msgString = "all_good";
+    }
+    else if(drunk) {
+      msgString = "drunk";
+    }
+    
+    msgString.toCharArray(senderPacket, 100);
     if(Udp.beginPacket(IP, PORT) &&
       Udp.write(senderPacket) &&
       Udp.endPacket())  {
       Serial.printf("Packet sent: %s\n", senderPacket);
     }
-  }
+  delay(500);
+}
+
+bool checkDrunk(int alcoholLevel) {
+  if(alcoholLevel > ALCOHOL_THRESHOLD)
+    return true;
+  else
+    return false;
 }

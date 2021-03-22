@@ -11,6 +11,9 @@
 #define PORT 4210   // local port to listen on
 #define SDA D2
 #define SCL D1
+#define buzzer D3
+#define frequency 4000
+
 
 AsyncWebServer server(80);
 WiFiUDP Udp;
@@ -41,13 +44,14 @@ void setup()  {
   server.begin(); 
   Serial.printf("Now listening at IP %s, UDP port %d\n", WiFi.softAPIP().toString().c_str(), PORT);
 
+  pinMode(buzzer, OUTPUT);
   // LED pin to show client status
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
 
   lcd.clear();
   lcd.print("System ready!");
-  delay(1000);
+  delay(2000);
   
   lcd.clear();
 }
@@ -66,18 +70,21 @@ void loop() {
     receive_packets();
     if(switchStatus) {
 //      Serial.printf("packet: true\n");
+      noTone(buzzer);   // turn buzzer off
       lcd.setCursor(10, 1);
       lcd.print("ON ");
       digitalWrite(LED_BUILTIN, LOW); // turn led ON
     }
-    else  {      
+    else  {
 //      Serial.printf("packet: false\n");
+      tone(buzzer, frequency);  // turn buzzer on
       lcd.setCursor(10, 1);
       lcd.print("OFF");
       digitalWrite(LED_BUILTIN, HIGH);  //turn led OFF
     }
   }
   else  {
+    tone(buzzer, frequency);    // turn buzzer on
     lcd.print("Lost");
     lcd.setCursor(0, 1);
     lcd.print("Ignition: OFF");
@@ -100,37 +107,27 @@ bool client_status() {
 
 
 void receive_packets()  {
-//  digitalWrite(LED_BUILTIN, LOW); // client connected
   int packetSize = Udp.parsePacket();
 //  Serial.printf("packetSize = %d\n", packetSize);
   if(packetSize) {
     // receive incoming UDP packets
-    Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
+//    Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
     int len = Udp.read(incomingPacket, 255);
     if (len > 0)  {
       incomingPacket[len] = 0;
     }
-    Serial.printf("UDP packet contents:%s\n", incomingPacket);
-    Serial.printf("true compare: %d\n", strncmp(incomingPacket, "true", 4));
-
+//    Serial.printf("UDP packet contents:%s\n", incomingPacket);
   
-    if(strncmp(incomingPacket, "true", 4)==0)  {
+    if(strncmp(incomingPacket, "all_good", 4)==0)  {
       switchStatus = true;
-      
     }
-    else if(strncmp(incomingPacket, "false", 5)==0) {
+    else if(strncmp(incomingPacket, "drunk", 5)==0) {
       switchStatus = false;
     }
-    
-    Serial.print("switchStatus: ");
-    Serial.println(switchStatus);
 
     // send back a reply, to the IP address and port we got the packet from
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
     Udp.write(replyPacket);
     Udp.endPacket();
-  }
-  else  {
-//    digitalWrite(LED_BUILTIN, HIGH);  // client disconnected
   }
 }
