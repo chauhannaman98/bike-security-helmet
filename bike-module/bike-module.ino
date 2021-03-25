@@ -13,6 +13,7 @@
 #define SCL D1
 #define buzzer D3
 #define frequency 4000
+#define sparkPlugPin D7
 
 
 AsyncWebServer server(80);
@@ -21,13 +22,15 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 char incomingPacket[255];  // buffer for incoming packets
 char replyPacket[] = "Got message successfully!";  // a reply string to send back
-//unsigned long Interval = 20000;
 bool switchStatus = false;
 
 
 void setup()  {
   Serial.begin(115200);
   Serial.println();
+
+  pinMode(sparkPlugPin, OUTPUT);
+  digitalWrite(sparkPlugPin, LOW);
 
   Wire.begin(SDA, SCL);
   lcd.begin(16, 2);   // initializing the LCD
@@ -52,7 +55,6 @@ void setup()  {
   lcd.clear();
   lcd.print("System ready!");
   delay(2000);
-  
   lcd.clear();
 }
 
@@ -63,24 +65,23 @@ void loop() {
   lcd.print("Connection: ");
   lcd.setCursor(12, 0);
   if(_client)  {
-//    Serial.printf("client: true\t");
     lcd.print("Okay");
     lcd.setCursor(0, 1);
     lcd.print("Ignition: ");
     receive_packets();
     if(switchStatus) {
-//      Serial.printf("packet: true\n");
       noTone(buzzer);   // turn buzzer off
       lcd.setCursor(10, 1);
       lcd.print("ON ");
       digitalWrite(LED_BUILTIN, LOW); // turn led ON
+      digitalWrite(sparkPlugPin, LOW);
     }
     else  {
-//      Serial.printf("packet: false\n");
       tone(buzzer, frequency);  // turn buzzer on
       lcd.setCursor(10, 1);
       lcd.print("OFF");
       digitalWrite(LED_BUILTIN, HIGH);  //turn led OFF
+      digitalWrite(sparkPlugPin, HIGH);
     }
   }
   else  {
@@ -108,9 +109,8 @@ bool client_status() {
 
 void receive_packets()  {
   int packetSize = Udp.parsePacket();
-//  Serial.printf("packetSize = %d\n", packetSize);
   if(packetSize) {
-    // receive incoming UDP packets
+//    receive incoming UDP packets
 //    Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
     int len = Udp.read(incomingPacket, 255);
     if (len > 0)  {
