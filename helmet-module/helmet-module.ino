@@ -9,6 +9,7 @@
 #define PORT 4210   // local port to listen on
 #define MQ3 A0
 #define ALCOHOL_THRESHOLD 500
+#define IR_SENSOR D5
 
 WiFiUDP Udp;
 
@@ -31,29 +32,38 @@ void setup() {
   
   Udp.begin(PORT);
   pinMode(MQ3, INPUT);
+  pinMode(IR_SENSOR, INPUT);
 }
 
 
 void loop() {
   String msgString;
-    int alcohol_level = analogRead(MQ3);
-    bool drunk = checkDrunk(alcohol_level);
-//    Serial.printf("Alcohol level: %d\tdrunk:%d\n", alcohol_level, drunk);
+  int alcohol_level = analogRead(MQ3);
+  bool drunk = checkDrunk(alcohol_level);
+  bool helmet = helmetWorn();
+//  Serial.printf("IR: %d\t", helmet);
+//  Serial.printf("Alcohol level: %d\tdrunk:%d\n", alcohol_level, drunk);
 
-    if(!drunk) {
-      msgString = "all_good";
-    }
-    else if(drunk) {
-      msgString = "drunk";
-    }
+  if(helmet && !drunk) {
+    msgString = "all_good";
+  }
+  else if(helmet && drunk) {
+    msgString = "drunk";
+  }
+  else if(!helmet && !drunk)  {
+    msgString = "no_helmet";
+  }
+  else  {
+    msgString = "not_okay";
+  }
     
-    msgString.toCharArray(senderPacket, 100);
-    if(Udp.beginPacket(IP, PORT) &&
-      Udp.write(senderPacket) &&
-      Udp.endPacket())  {
-      Serial.printf("Packet sent: %s\n", senderPacket);
-    }
-  delay(500);
+  msgString.toCharArray(senderPacket, 100);
+  if(Udp.beginPacket(IP, PORT) &&
+    Udp.write(senderPacket) &&
+    Udp.endPacket())  {
+//    Serial.printf("Packet sent: %s\n", senderPacket);
+  }
+  delay(50);
 }
 
 bool checkDrunk(int alcoholLevel) {
@@ -61,4 +71,13 @@ bool checkDrunk(int alcoholLevel) {
     return true;
   else
     return false;
+}
+
+bool helmetWorn()  {
+  if(digitalRead(IR_SENSOR) == 0) {
+    return false;
+  }
+  else  {
+    return true;
+  }
 }

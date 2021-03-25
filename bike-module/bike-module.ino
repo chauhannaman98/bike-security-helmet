@@ -124,6 +124,12 @@ void receive_packets()  {
     else if(strncmp(incomingPacket, "drunk", 5)==0) {
       switchStatus = false;
     }
+    else if(strncmp(incomingPacket, "no_helmet", 9)==0) {
+      switchStatus = false;
+    }
+    else if(strncmp(incomingPacket, "not_okay", 8)==0) {
+      switchStatus = false;
+    }
 
     // send back a reply, to the IP address and port we got the packet from
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
